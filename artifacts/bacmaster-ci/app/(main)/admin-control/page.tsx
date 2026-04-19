@@ -12,6 +12,7 @@ export default function AdminPage() {
   const { toast } = useToast();
   const router = useRouter();
   const [pendingProfiles, setPendingProfiles] = useState<any[]>([]);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
 
   useEffect(() => {
     const checkAdminAndFetch = async () => {
@@ -21,6 +22,7 @@ export default function AdminPage() {
         router.replace("/");
         return;
       }
+      setSessionToken(session.access_token);
       const { data: prof } = await supabase.from("profiles").select("is_admin").eq("id", session.user.id).single();
       if (!prof?.is_admin) {
         router.replace("/dashboard");
@@ -43,12 +45,19 @@ export default function AdminPage() {
 
   const handleValidate = async (id: string, validate: boolean) => {
     try {
-      const updateData = validate 
-        ? { is_premium: true, payment_screenshot_url: null }
-        : { payment_screenshot_url: null };
-
-      const { error } = await supabase!.from("profiles").update(updateData).eq("id", id);
-      if (error) throw error;
+      if (!sessionToken) throw new Error("Session administrateur introuvable.");
+      const response = await fetch("/api/admin/validate-payment", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${sessionToken}`,
+        },
+        body: JSON.stringify({ profileId: id, validate }),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.error || "Validation impossible.");
+      }
       
       toast({ title: "Succès", description: validate ? "Compte passé en Premium" : "Preuve rejetée" });
       fetchPending();
