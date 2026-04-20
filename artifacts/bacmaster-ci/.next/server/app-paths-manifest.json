@@ -1,5 +1,1 @@
-{
-  "/api/tutor/route": "app/api/tutor/route.js",
-  "/auth/page": "app/auth/page.js",
-  "/(main)/tutor/page": "app/(main)/tutor/page.js"
-}
+{}

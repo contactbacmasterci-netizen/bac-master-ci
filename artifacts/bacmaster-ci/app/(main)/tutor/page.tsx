@@ -7,7 +7,8 @@ import { Send, Lock, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 type Message = { role: "user" | "assistant", content: string };
 
 export default function TutorPage() {
@@ -132,7 +133,11 @@ export default function TutorPage() {
                   : "bg-white border text-gray-800 rounded-tl-none"
               }`}
             >
-              {msg.content}
+              <div className="prose prose-sm max-w-none dark:prose-invert">
+  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+    {msg.content}
+  </ReactMarkdown>
+</div>
             </div>
           </div>
         ))}
