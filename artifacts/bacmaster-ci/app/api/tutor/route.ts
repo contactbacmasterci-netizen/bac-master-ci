@@ -121,7 +121,7 @@ export async function POST(request: Request) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "gpt-5.2",
+      model: process.env.AI_MODEL || "llama-3.3-70b-versatile",
       messages: [
         {
           role: "system",
