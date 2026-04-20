@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Send, Lock, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,9 +11,11 @@ import { useToast } from "@/components/ui/use-toast";
 type Message = { role: "user" | "assistant", content: string };
 
 export default function TutorPage() {
+  const router = useRouter();
   const { toast } = useToast();
   const [profile, setProfile] = useState<any>(null);
   const [session, setSession] = useState<any>(null);
+  const [initializing, setInitializing] = useState(true);
   const [messages, setMessages] = useState<Message[]>([
     { role: "assistant", content: "Salut ! Je suis ton tuteur IA BacMaster. Pose-moi une question sur tes cours !" }
   ]);
@@ -22,16 +25,27 @@ export default function TutorPage() {
 
   useEffect(() => {
     const fetchProf = async () => {
-      if (!supabase) return;
-      const { data: { session: sess } } = await supabase.auth.getSession();
-      setSession(sess);
-      if (sess) {
-        const { data } = await supabase.from("profiles").select("*").eq("id", sess.user.id).single();
-        setProfile(data);
+      if (!supabase) {
+        setInitializing(false);
+        return;
       }
+      const { data: { session: sess } } = await supabase.auth.getSession();
+      if (!sess) {
+        router.replace("/auth");
+        return;
+      }
+      setSession(sess);
+      const { data } = await supabase.from("profiles").select("*").eq("id", sess.user.id).single();
+      setProfile(data || {
+        id: sess.user.id,
+        full_name: sess.user.user_metadata?.full_name || null,
+        is_premium: false,
+        ai_messages_count: 0,
+      });
+      setInitializing(false);
     };
     fetchProf();
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -39,7 +53,12 @@ export default function TutorPage() {
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || !profile || !session) return;
+    if (!input.trim()) return;
+    if (!profile || !session) {
+      toast({ title: "Connexion requise", description: "Connecte-toi pour utiliser le tuteur IA.", variant: "destructive" });
+      router.replace("/auth");
+      return;
+    }
 
     if (!profile.is_premium && profile.ai_messages_count >= 3) {
       toast({ title: "Limite atteinte", description: "Tu as utilisé tes 3 messages gratuits. Passe Premium pour continuer !", variant: "destructive" });
@@ -79,6 +98,7 @@ export default function TutorPage() {
   };
 
   const messagesLeft = profile?.is_premium ? "Illimité" : Math.max(0, 3 - (profile?.ai_messages_count || 0));
+  const inputDisabled = initializing || !session || !profile || (!profile?.is_premium && messagesLeft === 0) || loading;
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] md:h-[calc(100vh-4rem)] bg-white max-w-3xl mx-auto shadow-sm border-x border-gray-100">
@@ -133,16 +153,16 @@ export default function TutorPage() {
         <form onSubmit={handleSend} className="flex items-end gap-2">
           <Input 
             className="flex-1 h-12 bg-gray-50 border-gray-200"
-            placeholder={(!profile?.is_premium && messagesLeft === 0) ? "Passe Premium pour continuer" : "Pose ta question..."}
+            placeholder={initializing ? "Chargement..." : (!profile?.is_premium && messagesLeft === 0) ? "Passe Premium pour continuer" : "Pose ta question..."}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            disabled={(!profile?.is_premium && messagesLeft === 0) || loading}
+            disabled={inputDisabled}
           />
           <Button 
             type="submit" 
             size="icon" 
             className="h-12 w-12 shrink-0 rounded-xl"
-            disabled={(!profile?.is_premium && messagesLeft === 0) || loading || !input.trim()}
+            disabled={inputDisabled || !input.trim()}
           >
             {(!profile?.is_premium && messagesLeft === 0) ? <Lock className="h-5 w-5" /> : <Send className="h-5 w-5" />}
           </Button>

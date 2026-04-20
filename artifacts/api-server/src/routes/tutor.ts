@@ -15,6 +15,7 @@ type Profile = {
 const router: IRouter = Router();
 
 const freeMessageLimit = 3;
+const fallbackUsageCounts = new Map<string, number>();
 
 function getBearerToken(header: string | undefined) {
   if (!header?.startsWith("Bearer ")) {
@@ -49,13 +50,7 @@ router.post("/tutor", async (req, res) => {
     return;
   }
 
-  const supabase = createClient(supabaseUrl, supabaseKey, {
-    global: {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    },
-  });
+  const supabase = createClient(supabaseUrl, supabaseKey);
 
   const {
     data: { user },
@@ -67,11 +62,51 @@ router.post("/tutor", async (req, res) => {
     return;
   }
 
-  const { data: profile, error: profileError } = await supabase
+  let usesPersistentCounter = true;
+  let { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("id, full_name, is_premium, ai_messages_count")
     .eq("id", user.id)
     .single<Profile>();
+
+  if (profileError?.code === "42703") {
+    usesPersistentCounter = false;
+    const fallbackResult = await supabase
+      .from("profiles")
+      .select("id, full_name, is_premium")
+      .eq("id", user.id)
+      .single<Omit<Profile, "ai_messages_count">>();
+
+    profile = fallbackResult.data
+      ? { ...fallbackResult.data, ai_messages_count: fallbackUsageCounts.get(user.id) ?? 0 }
+      : null;
+    profileError = fallbackResult.error;
+  }
+
+  if (profileError?.code === "PGRST116") {
+    const newProfile = {
+      id: user.id,
+      full_name:
+        typeof user.user_metadata?.full_name === "string"
+          ? user.user_metadata.full_name
+          : null,
+      email: user.email,
+      is_premium: false,
+      points: 0,
+    };
+
+    const { data: insertedProfile, error: insertError } = await supabase
+      .from("profiles")
+      .insert(newProfile)
+      .select("id, full_name, is_premium")
+      .single<Omit<Profile, "ai_messages_count">>();
+
+    profile = insertedProfile
+      ? { ...insertedProfile, ai_messages_count: fallbackUsageCounts.get(user.id) ?? 0 }
+      : null;
+    profileError = insertError;
+    usesPersistentCounter = false;
+  }
 
   if (profileError || !profile) {
     req.log.error({ err: profileError, userId: user.id }, "Tutor profile lookup failed");
@@ -129,13 +164,18 @@ router.post("/tutor", async (req, res) => {
     return;
   }
 
-  const { error: updateError } = await supabase
-    .from("profiles")
-    .update({ ai_messages_count: count + 1 })
-    .eq("id", user.id);
+  if (usesPersistentCounter) {
+    const { error: updateError } = await supabase
+      .from("profiles")
+      .update({ ai_messages_count: count + 1 })
+      .eq("id", user.id);
 
-  if (updateError) {
-    req.log.error({ err: updateError, userId: user.id }, "Tutor usage update failed");
+    if (updateError) {
+      req.log.error({ err: updateError, userId: user.id }, "Tutor usage update failed");
+      fallbackUsageCounts.set(user.id, count + 1);
+    }
+  } else {
+    fallbackUsageCounts.set(user.id, count + 1);
   }
 
   res.json({

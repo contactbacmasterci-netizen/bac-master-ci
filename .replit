@@ -20,39 +20,56 @@ path = "scripts/post-merge.sh"
 timeoutMs = 20000
 
 [[ports]]
-localPort = 8080
-externalPort = 8080
-
-[[ports]]
-localPort = 8081
+localPort = 3000
 externalPort = 80
 
 [[ports]]
+localPort = 8080
+
+[[ports]]
+localPort = 8081
+
+[[ports]]
 localPort = 8082
-externalPort = 3001
 
 [[ports]]
 localPort = 8083
-externalPort = 3002
 
 [[ports]]
 localPort = 8084
-externalPort = 3003
 
 [[ports]]
 localPort = 8085
-externalPort = 4200
 
 [[ports]]
 localPort = 8086
-externalPort = 5000
+
+[[ports]]
+localPort = 8087
+
+[[ports]]
+localPort = 8088
+
+[[ports]]
+localPort = 8089
+
+[[ports]]
+localPort = 8090
+
+[[ports]]
+localPort = 8091
+
+[[ports]]
+localPort = 8092
 
 [[ports]]
 localPort = 24505
-externalPort = 3000
 
 [userenv]
 
 [userenv.shared]
 NEXT_PUBLIC_SUPABASE_URL = "https://wgjzxuxukygeqbcjwpeu.supabase.co"
 NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indnanp4dXh1a3lnZXFiY2p3cGV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2MjEzODMsImV4cCI6MjA5MjE5NzM4M30.wcySTYKzrzXMv64q9hr7MoZnG5XT4T61q4C9h-Bj4Mk"
+
+[nix]
+packages = ["psmisc", "lsof"]

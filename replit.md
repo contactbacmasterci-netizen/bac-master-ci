@@ -32,6 +32,7 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
 - **Artifact**: `artifacts/bacmaster-ci`
 - **Stack**: Next.js App Router, Tailwind CSS, Lucide React, Supabase
 - **Purpose**: Educational web app for Terminale students in Côte d'Ivoire with Supabase Auth, course listing, free methodology content, AI tutor, manual premium proof uploads, admin validation, and leaderboard.
+- **Runtime**: Next.js server on the root preview path; `/api/tutor` and `/api/admin/validate-payment` run inside the BacMaster CI web app so the tutor works without depending on the separate Express workflow.
 - **Required configuration**:
   - `NEXT_PUBLIC_SUPABASE_URL`
   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
@@ -39,5 +40,6 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
 - **Supabase assumptions**:
   - Tables `profiles` and `courses` already exist.
   - Storage bucket `paiements-captures` already exists.
-  - Profile fields used: `id`, `full_name`, `email`, `is_premium`, `points`, `ai_messages_count`, `payment_screenshot_url`, `is_admin`, `created_at`.
+  - Profile fields used: `id`, `full_name`, `email`, `is_premium`, `points`, `payment_screenshot_url`, `is_admin`, `created_at`.
+  - The AI tutor will use `profiles.ai_messages_count` when present, but falls back to server-side in-memory counts if that column is missing so the tutor remains usable.
   - Course fields used: `id`, `title`, `subject`, `description`, `level`, `pdf_url`, `created_at`.

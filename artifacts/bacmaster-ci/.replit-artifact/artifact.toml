@@ -12,20 +12,29 @@ version = "1.0.0"
 [[services]]
 name = "web"
 paths = [ "/" ]
-localPort = 24505
+localPort = 3000
 
 [services.development]
 run = "pnpm --filter @workspace/bacmaster-ci run dev"
 
 [services.production]
-build = [ "pnpm", "--filter", "@workspace/bacmaster-ci", "run", "build" ]
-publicDir = "artifacts/bacmaster-ci/dist/public"
-serve = "static"
 
-[[services.production.rewrites]]
-from = "/*"
-to = "/index.html"
+[services.production.build]
+args = [ "pnpm", "--filter", "@workspace/bacmaster-ci", "run", "build" ]
+
+[services.production.build.env]
+NODE_ENV = "production"
+
+[services.production.run]
+args = [ "pnpm", "--filter", "@workspace/bacmaster-ci", "run", "start" ]
+
+[services.production.run.env]
+PORT = "3000"
+NODE_ENV = "production"
+
+[services.production.health.startup]
+path = "/auth"
 
 [services.env]
-PORT = "24505"
+PORT = "3000"
 BASE_PATH = "/"

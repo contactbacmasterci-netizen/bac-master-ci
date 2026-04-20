@@ -41,14 +41,14 @@ export default function AuthPage() {
         });
         if (error) throw error;
         if (data.user) {
-          await supabase.from("profiles").upsert({
+          const { error: profileError } = await supabase.from("profiles").upsert({
             id: data.user.id,
             full_name: fullName,
             email,
             is_premium: false,
             points: 0,
-            ai_messages_count: 0,
           });
+          if (profileError) throw profileError;
         }
         toast({ title: "Inscription réussie", description: "Vérifiez vos emails pour confirmer votre compte ou connectez-vous si l'email n'est pas requis." });
         setIsLogin(true);
